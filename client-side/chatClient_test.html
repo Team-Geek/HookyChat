@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css">
+	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+	<script src='./socket.io.js'></script>
+	<script src='./CocoonJSExtensions/src/CocoonJS.js'></script>
+	<script src='./CocoonJSExtensions/src/CocoonJS_Social.js'></script>
+	<script src='./CocoonJSExtensions/src/CocoonJS_Social_Facebook.js'></script>	
+	<style>	
+		.ui-icon-logo-fb {
+			background-image: url('./fblogo.png');
+			background-size: 29px 29px;
+			width: 29px;
+			height: 29px;
+			padding: 0px;
+			box-shadow: none;
+			-webkit-box-shadow:none;
+			margin: -1px !important;
+		}	
+	</style>
+	<script>
+		
+		$(document).ready(function (){
+			
+			var socket = io.connect('http://211.39.253.201:53297');
+			var nickname;
+			var fb = CocoonJS.Social.Facebook;
+
+
+			fb.init({
+				appId:'1556606327900581',
+				channelUrl:'channel.html',
+				status: true
+			});
+
+
+
+			socialService = fb.getSocialInterface();
+
+
+			socialService.onLoginStatusChanged.addEventListener(function(loggedIn, error){
+				if(!loggedIn)
+				{
+					$("body").pagecontainer("change", "#loginpage", {});
+				}
+			});
+
+			$('#signup').click(function() {
+				socket.emit('signup',{
+					newId: $('#newId').val(),
+					newPassword: $('#newPassword').val(),
+					newNickname: $('#newNickname').val()
+				});
+			});
+
+			$('#fblogin').click(function() {
+				socialService.login(function(response, error){
+					fb.api('/me', function(userdata) {
+						alert('Strong');
+						socket.emit('login', 2, userdata);						
+					});
+				});
+			});
+			
+			$('#login').click(function(){
+				socket.emit('login', 1, {
+					userid: $('#userid').val(),
+					password: $('#password').val()
+				});
+			});
+			
+			socket.on('loginSuccess', function (data){
+					nickname = data.nickname;
+					$("body").pagecontainer("change", "#roompage", {});
+					alert(nickname);
+			});
+
+			socket.on('loginFailed', function (){
+				$('#failedLogin').popup("open");
+			});
+			
+			socket.on('signup', function (data){
+				
+				if(data == 0)
+				{
+					//$('#success').popup('open');
+					
+					$('#register').popup('close');
+					
+					setTimeout(function(){
+						$('#success').popup("open");
+					}, 500);
+					
+				}
+				else if(data == 1)
+				{
+					$('#failed').html('<h4 style="color:red">id already exists</h4>');
+				}
+				else if(data == 2)
+				{
+					$('#failed').html('<h4 style="color:red">nickname already exists</h4>');
+				}
+			});
+			
+			socket.on('message', function (data){
+				
+				var output = '';
+				output += '<li>';
+				output += ' 	<h3>' + data.nickname + '</h3>';
+				output += '		<p>' + data.message + '</p>';
+				output += '		<p>' + data.date + '</p>';
+				output += '</li>';
+				
+				$(output).prependTo('#content');
+				$('#content').listview('refresh');
+			});
+		
+			$('button').click(function () {
+				socket.emit('message', {
+					nickname: nickname,
+					message: $('#message').val(),
+					date: new Date().toUTCString()
+				});
+				
+				$('#message').val('');
+			});
+			
+			$('#chatButton').click(function () {
+				$('#message').focus();
+			});
+			
+			$(document).on('swiperight', '#loginpage', function(e){
+				$('#register').popup("open");
+			});
+			
+			
+			$(document).on('swiperight', '#chatpage', function(e){
+				if ( $(".ui-page-active").jqmData("panel") !== "open")
+				{
+					$('#chat').panel("open");
+				}
+				$('#message').focus();
+			});
+						
+		});		
+	</script>	
+</head>
+<body>
+	<div data-role='dialog' data-position-to'window' id='loginpage'>
+		
+		<div data-role='header' data-position='fixed'>
+			<h1>Login Page</h1>
+			<a data-role='button' data-rel='popup' href="#register" id='registerButton' class="ui-corner-all">Sign up</a>
+			<a id='fblogin' data-role='button' data-icon='logo-fb' class='ui-corner-all ui-btn-icon-notext ui-nodisc-icon ui-btn-inline'></a>
+		</div>
+		
+		
+		<div data-role='popup' id='success' data-position-to='window' class='ui-content'>
+			<h3>Singed up sccessfully</h3>
+		</div>
+		
+		<div data-role='popup' id='failedLogin' data-position-to='window' class='ui-content'>
+			<h3>Login failed</h3>
+		</div>
+		
+		<div data-role='popup' id='register' data-position-to='window' data-dismissible="false" class='ui-content'>
+			<label>ID:</label><input id='newId'>
+			<label>Password:</label><input type='password' id='newPassword'>
+			<label>Nickname:</label><input id='newNickname'>
+			<div id='failed'></div>
+			<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn ui-icon-back ui-btn-icon-notext ui-btn-left"></a>	
+			<a id='signup' data-role='button' data-icon='check' class='ui-corner-all ui-shadow ui-btn-icon-notext ui-btn-inline'>Sign up</a>				
+		</div>
+		
+		
+		
+		<div data-role='content'>
+			
+			<div data-role="fieldcontain">
+				<label>ID:</label><input id='userid'>
+			</div>
+			<div data-role="fieldcontain">
+				<label>Password:</label><input type='password' id='password'>
+			</div>
+			<a id='login' data-role='button'>Start</a>
+		</div>
+	</div>
+		
+	<div data-role='page' id='roompage'>
+		<div data-role='header' data-position='fixed'>
+			<h1>Rooms</h1>
+		</div>
+		
+		<div data-role='content'>
+			<ul id='roomlist' data-role='listview' data-inset='true'>
+				
+			</ul>
+		</div>		
+	</div>
+	
+	<div data-role='page' id='chatpage'>
+		
+		<div data-role='header' data-position='fixed'>
+			<a href="#chat" id='chatButton' class="ui-btn ui-corner-all ui-icon-edit ui-btn-icon-left">&nbsp</a>
+			<h1>my room</h1>
+		</div>
+		
+		<div data-role='panel' data-position-fixed='true' id='chat'>
+			<input id='message'>
+			<button>Send</button>
+		</div>
+		
+		<div data-role='content'>
+			<ul id='content' data-role='listview' data-inset='true'>
+				
+			</ul>
+		</div>
+	</div>
+</body>
+</html>
