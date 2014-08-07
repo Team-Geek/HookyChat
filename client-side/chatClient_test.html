@@ -42,7 +42,17 @@
 
 
 			socialService.onLoginStatusChanged.addEventListener(function(loggedIn, error){
-				if(!loggedIn)
+
+				
+				if(loggedIn)
+				{	
+					$('#fblogin').hide();
+					alert('facebook login success');	
+					fb.api('/me', function(userdata) {						
+						socket.emit('login', 2, userdata);					
+					});
+				}				
+				else if(!loggedIn)
 				{
 					$("body").pagecontainer("change", "#loginpage", {});
 				}
@@ -57,11 +67,7 @@
 			});
 
 			$('#fblogin').click(function() {
-				socialService.login(function(response, error){
-					fb.api('/me', function(userdata) {
-						alert('Strong');
-						socket.emit('login', 2, userdata);						
-					});
+				socialService.login(function(response, error){				
 				});
 			});
 			

@@ -24,6 +24,7 @@ io.sockets.on('connection', function (socket){
 	socket.on('login', function (type, data){	
 		
 		console.log('yo');		
+		console.log(data);
 
 		if(type == 1)
 			login(data, socket);
