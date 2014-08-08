@@ -19,7 +19,7 @@
 			box-shadow: none;
 			-webkit-box-shadow:none;
 			margin: -1px !important;
-		}	
+		}
 	</style>
 	<script>
 		
@@ -28,7 +28,7 @@
 			var socket = io.connect('http://211.39.253.201:53297');
 			var nickname;
 			var fb = CocoonJS.Social.Facebook;
-
+			var room_list;
 
 			fb.init({
 				appId:'1556606327900581',
@@ -47,8 +47,8 @@
 				if(loggedIn)
 				{	
 					$('#fblogin').hide();
-					alert('facebook login success');	
-					fb.api('/me', function(userdata) {						
+					alert('facebook login success');
+					fb.api('/me', function(userdata) {
 						socket.emit('login', 2, userdata);					
 					});
 				}				
@@ -56,6 +56,11 @@
 				{
 					$("body").pagecontainer("change", "#loginpage", {});
 				}
+			});
+
+			$('#fblogin').click(function() {
+				socialService.login(function(response, error){				
+				});
 			});
 
 			$('#signup').click(function() {
@@ -66,10 +71,7 @@
 				});
 			});
 
-			$('#fblogin').click(function() {
-				socialService.login(function(response, error){				
-				});
-			});
+			
 			
 			$('#login').click(function(){
 				socket.emit('login', 1, {
@@ -110,6 +112,36 @@
 					$('#failed').html('<h4 style="color:red">nickname already exists</h4>');
 				}
 			});
+
+			socket.on('showRooms', function (data)
+			{
+				alert(data);				
+				$('#roomlist li').remove();
+
+				if(data)
+				{
+					for(var i = 0; i < data.length; i++)
+					{
+						var output = '';
+						output += '<li id="room" value="' + i +'"><a>';
+						output += ' 	<h3>' + data[i] + '</h3></a>';					
+						output += '</li>';
+
+						$(output).prependTo('#roomlist');
+						$('#roomlist').listview('refresh');				
+					}
+
+					room_list = data;
+				
+					/*$('#roomlist li').click(function(event) {					
+						target = event.currentTarget;											
+					});*/
+
+
+				}
+
+			});
+
 			
 			socket.on('message', function (data){
 				
@@ -197,6 +229,7 @@
 		
 	<div data-role='page' id='roompage'>
 		<div data-role='header' data-position='fixed'>
+			<a href='#room_maker' data-role='button' data-rel='popup' data-icon='plus' class='ui-conner-all ui-shadow ui-btn-left'>Create Room</a>
 			<h1>Rooms</h1>
 		</div>
 		
