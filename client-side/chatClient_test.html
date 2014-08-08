@@ -27,6 +27,7 @@
 			
 			var socket = io.connect('http://211.39.253.201:53297');
 			var nickname;
+			/*
 			var fb = CocoonJS.Social.Facebook;
 
 
@@ -58,6 +59,12 @@
 				}
 			});
 
+			$('#fblogin').click(function() {
+				socialService.login(function(response, error){				
+				});
+			});
+			*/
+
 			$('#signup').click(function() {
 				socket.emit('signup',{
 					newId: $('#newId').val(),
@@ -66,10 +73,7 @@
 				});
 			});
 
-			$('#fblogin').click(function() {
-				socialService.login(function(response, error){				
-				});
-			});
+			
 			
 			$('#login').click(function(){
 				socket.emit('login', 1, {
