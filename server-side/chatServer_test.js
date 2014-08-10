@@ -12,13 +12,7 @@ var db = mysql.createConnection({
 
 var loggedIn;
 
-io.sockets.on('connection', function (socket){
-	
-	var arr = [];
-	arr[0] = 23599685197365248;
-	arr[1] = 23593455197365248;
-
-	console.log(JSON.stringify(arr));
+io.sockets.on('connection', function (socket){		
 
 	socket.on('signup', function (data){
 		
@@ -142,11 +136,26 @@ function showRooms(userid, socket)
 {
 	db.query('SELECT * FROM UserInfo WHERE userid="' + userid + '"', function(error, userinfo){
 		var parsed = JSON.parse(userinfo[0].joined_room);		
-		socket.emit('showRooms', parsed);
+		socket.emit('showRooms', '#roomlist',  parsed);
 	});
+}
+
+function showCraatedRooms(userid, socket)
+{
+	/*
+	db.query('SELECT * FROM Roomlist', function(error, roominfo) {
+		socket.emit('showRooms', )
+	});
+	*/
+}
+
+function switchRoom(data, socket)
+{
+
 }
 
 function enterRoom(data, socket)
 {
 
 }
+

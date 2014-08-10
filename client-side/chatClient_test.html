@@ -20,6 +20,16 @@
 			-webkit-box-shadow:none;
 			margin: -1px !important;
 		}
+
+		.ui-bar-b
+		{
+			background-color: #00FF00;
+		}
+
+		div.ui-input-search { 
+			width: 45% !important;
+			left: 20%;
+		}
 	</style>
 	<script>
 		
@@ -41,6 +51,7 @@
 			socialService = fb.getSocialInterface();
 
 
+			//the event about login status change
 			socialService.onLoginStatusChanged.addEventListener(function(loggedIn, error){
 
 				
@@ -58,11 +69,13 @@
 				}
 			});
 
+			//facebook login button click event
 			$('#fblogin').click(function() {
 				socialService.login(function(response, error){				
 				});
 			});
 
+			//signup button clikc event
 			$('#signup').click(function() {
 				socket.emit('signup',{
 					newId: $('#newId').val(),
@@ -82,7 +95,7 @@
 			
 			socket.on('loginSuccess', function (data){
 					nickname = data.nickname;
-					$("body").pagecontainer("change", "#roompage", {});
+					$("body").pagecontainer("change", "#searchpage", {});
 					alert(nickname);
 			});
 
@@ -113,10 +126,10 @@
 				}
 			});
 
-			socket.on('showRooms', function (data)
+			socket.on('showRooms', function (list, data)
 			{
 				alert(data);				
-				$('#roomlist li').remove();
+				$(list + ' li').remove();
 
 				if(data)
 				{
@@ -127,17 +140,14 @@
 						output += ' 	<h3>' + data[i] + '</h3></a>';					
 						output += '</li>';
 
-						$(output).prependTo('#roomlist');
-						$('#roomlist').listview('refresh');				
-					}
+						$(output).prependTo(list);
+						$(list).listview('refresh');				
+					}				
+				}
 
+				if(data == '#roomlist')
+				{
 					room_list = data;
-				
-					/*$('#roomlist li').click(function(event) {					
-						target = event.currentTarget;											
-					});*/
-
-
 				}
 
 			});
@@ -184,7 +194,7 @@
 			});
 						
 		});		
-	</script>	
+	</script>
 </head>
 <body>
 	<div data-role='dialog' data-position-to'window' id='loginpage'>
@@ -228,18 +238,41 @@
 	</div>
 		
 	<div data-role='page' id='roompage'>
-		<div data-role='header' data-position='fixed'>
-			<a href='#room_maker' data-role='button' data-rel='popup' data-icon='plus' class='ui-conner-all ui-shadow ui-btn-left'>Create Room</a>
-			<h1>Rooms</h1>
+			<div data-role='content'>
+				<ul id='roomlist' data-role='listview' data-inset='true'>
+			
+				</ul>
+			</div>
+
+			<div data-role='footer' data-position='fixed'>
+			<div data-role='navbar'>
+				<ul>
+					<li><a href='#roompage' data-icon='bars'></a></li>
+					<li><a href='#searchpage' data-icon='search'></a></li>
+					<li><a href='#' data-icon='user'></a></li>
+				</ul>
+			</div>		
 		</div>
-		
-		<div data-role='content'>
-			<ul id='roomlist' data-role='listview' data-inset='true'>
-				
-			</ul>
-		</div>		
 	</div>
-	
+
+	<div data-role='page' id='searchpage'>
+		<div class="header" data-position='fixed'>			
+					<input id='searchroom' type='search'>
+					<a data-role='button' data-icon='search' class='ui-conner-all ui-shadow ui-btn-icon-notext ui-btn-right'></a>			
+					<a href='#room_maker' data-role='button' data-rel='popup' data-icon='plus' class='ui-conner-all ui-shadow ui-btn-left ui-btn-icon-notext'></a>			
+		</div>		
+		
+		<div data-role='footer' data-position='fixed'>
+			<div data-role='navbar'>
+				<ul>
+					<li><a href='#roompage' data-icon='bars'></a></li>
+					<li><a href='#searchpage' data-icon='search'></a></li>
+					<li><a href='#' data-icon='user'></a></li>
+				</ul>
+			</div>		
+		</div>
+	</div>
+
 	<div data-role='page' id='chatpage'>
 		
 		<div data-role='header' data-position='fixed'>
