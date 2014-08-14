@@ -19,7 +19,28 @@
 			box-shadow: none;
 			-webkit-box-shadow:none;
 			margin: -1px !important;
-		}	
+		}
+
+		.ui-no-growth
+		{
+			height: auto !important;
+			overflow-y: scroll !important;
+		}
+
+		.ui-bar-b
+		{
+			background-color: #00FF00;
+		}
+
+		div.ui-input-search { 
+			width: 45% !important;
+			left: 20%;
+		}
+
+		.ui-no-growth
+		{
+    		height: auto !important;
+		}		
 	</style>
 	<script>
 		
@@ -28,7 +49,7 @@
 			var socket = io.connect('http://211.39.253.201:53297');
 			var nickname;
 			var fb = CocoonJS.Social.Facebook;
-
+			var target;
 
 			fb.init({
 				appId:'1556606327900581',
@@ -41,14 +62,15 @@
 			socialService = fb.getSocialInterface();
 
 
+			//the event about login status change
 			socialService.onLoginStatusChanged.addEventListener(function(loggedIn, error){
 
 				
 				if(loggedIn)
 				{	
 					$('#fblogin').hide();
-					alert('facebook login success');	
-					fb.api('/me', function(userdata) {						
+					alert('facebook login success');
+					fb.api('/me', function(userdata) {
 						socket.emit('login', 2, userdata);					
 					});
 				}				
@@ -58,18 +80,20 @@
 				}
 			});
 
+			//facebook login button click event
+			$('#fblogin').click(function() {
+				socialService.login(function(response, error){				
+				});
+			});
+
+			//signup button clikc event
 			$('#signup').click(function() {
 				socket.emit('signup',{
 					newId: $('#newId').val(),
 					newPassword: $('#newPassword').val(),
 					newNickname: $('#newNickname').val()
 				});
-			});
-
-			$('#fblogin').click(function() {
-				socialService.login(function(response, error){				
-				});
-			});
+			});			
 			
 			$('#login').click(function(){
 				socket.emit('login', 1, {
@@ -81,13 +105,14 @@
 			socket.on('loginSuccess', function (data){
 					nickname = data.nickname;
 					$("body").pagecontainer("change", "#roompage", {});
-					alert(nickname);
+					console.log(nickname);				
 			});
 
 			socket.on('loginFailed', function (){
 				$('#failedLogin').popup("open");
 			});
-			
+
+
 			socket.on('signup', function (data){
 				
 				if(data == 0)
@@ -110,29 +135,114 @@
 					$('#failed').html('<h4 style="color:red">nickname already exists</h4>');
 				}
 			});
+
+			socket.on('showRooms', function (list, data)
+			{				
+				//alert(data);			
+				$(list + ' li').remove();
+
+				console.log($(list).parents('div[data-role="page"]').is('.ui-page-active'));
+				
+				for(var i = 0; i < data.length; i++)
+				{						
+					var output = '';
+					output += '<li id="room" value="' + i +'"><a>';
+					output += ' 	<h3>' + data[i].name + '</h3></a>';					
+					output += '</li>';
+
+					$(output).prependTo(list);						
+					
+					if($(list).parents('div[data-role="page"]').is('.ui-page-active'))
+						$(list).listview('refresh');						
+				}
+
+				if(list == '#roomlist')
+				{
+					console.log('showroom');
+					$('#roomlist li').click(function(event){
+						var number = event.currentTarget.value;
+						$('body').pagecontainer('change', '#' + data[number].id);
+						console.log('#' + data[number].id);
+					});
+					$('.ui-btn-send').click(function (event) {
+
+						//get the current room
+						console.log('send');
+						var room = $(event.currentTarget).parents('div[data-role="page"]').attr('id');
+
+						console.log(room);
+
+						//emit the event to server
+						socket.emit('message', {
+							room: room,
+							nickname: nickname,
+							message: $('#' + room + ' textarea').val(),
+							date: new Date().toUTCString()
+						});
+						
+						$('#message').val('');
+					});
+
+				}				
+				
+			});
+
+			socket.on('initRoompage', function (roomlist) {
+
+				console.log('init roompage');
+
+				for(var i = 0; i < roomlist.length; i++)
+				{
+					var output = '';
+					output += '<div data-role="page" id="' + roomlist[i].id + '" no="' + i + '">';
+					output += '	<div data-role="header" data-position="fixed">'
+					output += '  <a data-role="button" href="#roompage" data-icon="bars" class="ui-corner-all ui-shadow ui-btn-icon-left">&nbsp</a>';
+					output += '  <h3>' + roomlist[i].name + '</h3>';
+					output += '  <a data-role="button" data-icon="comment" class="ui-conner-all ui-shadow ui-btn-right ui-btn-send">send</a>'
+					output += '  <div data-role=navbar>'					
+					output += '   <textarea rows="2" class="ui-no-growth">'
+					output += '   </textarea>'
+					output += '  </div>'
+					output += ' </div>';
+					output += ' <div data-role="content">';
+					output += '  <ul data-role="listview" data-inset="true">';
+					output += '  </ul>';
+					output += ' </div>';
+					output += ' <div data-role="footer" data-position="fixed">';			
+					output += ' </div>';
+					output += '</div>';
+
+					$(output).prependTo('body');				
+				}
+
+			});
+
 			
 			socket.on('message', function (data){
 				
+				console.log(data);
+
 				var output = '';
-				output += '<li>';
+				output += '<li><a>';
 				output += ' 	<h3>' + data.nickname + '</h3>';
 				output += '		<p>' + data.message + '</p>';
 				output += '		<p>' + data.date + '</p>';
-				output += '</li>';
+				output += '</a></li>';
 				
-				$(output).prependTo('#content');
-				$('#content').listview('refresh');
-			});
-		
-			$('button').click(function () {
-				socket.emit('message', {
-					nickname: nickname,
-					message: $('#message').val(),
-					date: new Date().toUTCString()
-				});
-				
-				$('#message').val('');
-			});
+				//$(output).prependTo('#content');
+				//$('#content').listview('refresh');
+
+				$(output).appendTo('#' + data.room + ' ul');
+
+				console.log($('#' + data.room).is('.ui-page'));
+
+				if($('#' + data.room).is('.ui-page'))				{
+					
+					$('#' + data.room).find('ul').listview('refresh');
+				}
+
+				console.log('message end');
+			});	
 			
 			$('#chatButton').click(function () {
 				$('#message').focus();
@@ -148,11 +258,12 @@
 				{
 					$('#chat').panel("open");
 				}
+
 				$('#message').focus();
 			});
 						
 		});		
-	</script>	
+	</script>
 </head>
 <body>
 	<div data-role='dialog' data-position-to'window' id='loginpage'>
@@ -196,17 +307,49 @@
 	</div>
 		
 	<div data-role='page' id='roompage'>
-		<div data-role='header' data-position='fixed'>
-			<h1>Rooms</h1>
+			<div data-role='content'>
+				<ul id='roomlist' data-role='listview' data-inset='true'>
+			
+				</ul>
+			</div>
+
+			<div data-role='footer' data-position='fixed'>
+			<div data-role='navbar'>
+				<ul>
+					<li><a href='#roompage' data-icon='bars'></a></li>
+					<li><a href='#searchpage' data-icon='search'></a></li>
+					<li><a href='#' data-icon='user'></a></li>
+				</ul>
+			</div>		
 		</div>
+	</div>
+
+	<div data-role='page' id='searchpage'>
+		<div class="header" data-position='fixed'>			
+					<input id='searchroom' type='search'>
+					<a data-role="button" data-icon="search" class="ui-conner-all ui-shadow ui-btn-icon-notext ui-btn-right"></a>			
+					<a href='#room_maker' data-role='button' data-rel='popup' data-icon='plus' class='ui-conner-all ui-shadow ui-btn-left ui-btn-icon-notext'></a>			
+		</div>		
 		
 		<div data-role='content'>
-			<ul id='roomlist' data-role='listview' data-inset='true'>
-				
+			<ul id='searchlist' data-role='listview' data-inset='true'>
+
 			</ul>
-		</div>		
+		</div>
+
+		<div data-role='footer' data-position='fixed'>
+			<div data-role='navbar'>
+				<ul>
+					<li><a href='#roompage' data-icon='bars'></a></li>
+					<li><a href='#searchpage' data-icon='search'></a></li>
+					<li><a href='#' data-icon='user'></a></li>
+				</ul>
+			</div>		
+		</div>
+
+
 	</div>
-	
+
 	<div data-role='page' id='chatpage'>
 		
 		<div data-role='header' data-position='fixed'>
