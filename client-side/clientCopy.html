@@ -6,9 +6,8 @@
 	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
 	<script src='./socket.io.js'></script>
-	<script src='./CocoonJSExtensions/src/CocoonJS.js'></script>
-	<script src='./CocoonJSExtensions/src/CocoonJS_Social.js'></script>
-	<script src='./CocoonJSExtensions/src/CocoonJS_Social_Facebook.js'></script>	
+
+
 	<style>	
 		.ui-icon-logo-fb {
 			background-image: url('./fblogo.png');
@@ -21,87 +20,48 @@
 			margin: -1px !important;
 		}	
 	</style>
+
+
 	<script>
 		
 		$(document).ready(function (){
-			
+			<!-- 서버 연결 초기화 -->
 			var socket = io.connect('http://211.39.253.201:53297');
 			var nickname;
-			/* test */
-			/*
-			var fb = CocoonJS.Social.Facebook;
-
-
-			fb.init({
-				appId:'1556606327900581',
-				channelUrl:'channel.html',
-				status: true
-			});
-
-
-
-			socialService = fb.getSocialInterface();
-
-
-			socialService.onLoginStatusChanged.addEventListener(function(loggedIn, error){
-
-				
-				if(loggedIn)
-				{	
-					$('#fblogin').hide();
-					alert('facebook login success');	
-					fb.api('/me', function(userdata) {						
-						socket.emit('login', 2, userdata);					
-					});
-				}				
-				else if(!loggedIn)
-				{
-					$("body").pagecontainer("change", "#loginpage", {});
-				}
-			});
-
-			$('#fblogin').click(function() {
-				socialService.login(function(response, error){				
-				});
-			});
-			*/
-
+			
+<!-- 회원가입 -->
 			$('#signup').click(function() {
+
 				socket.emit('signup',{
 					newId: $('#newId').val(),
 					newPassword: $('#newPassword').val(),
 					newNickname: $('#newNickname').val()
 				});
 			});
+<!-- 페이스북 버튼-->
+			$('#fblogin').click(function() {
+				socialService.login(function(response, error){
+					fb.api('/me', function(userdata) {
+						alert('Strong');
+						socket.emit('login', 2, userdata);						
+					});
+				});
+			});
+			
 
-			
-			
 			$('#login').click(function(){
 				socket.emit('login', 1, {
 					userid: $('#userid').val(),
-					password: $('#password').val(),
-					//
-					roomname: $('#roomname').val()
+					password: $('#password').val()
 				});
-
-				socket.emit('join', {'userid':userid.value, 'roomname':roomname.value});
-				document.getElementById('log').style.display = 'none';
-				document.getElementById('chat').style.display = 'block';
-
-
 			});
-			socket.on('join',function(data){
-			alert(data);
-
-			});
-
-
-
-
 			
+
+<!--여기서부터는 서버쪽에서 리스폰스 온것을 받아서 클라이언트에서 실행시키는 함수들.. -->
+
 			socket.on('loginSuccess', function (data){
 					nickname = data.nickname;
-					$("body").pagecontainer("change", "#chatpage", {});
+					$("body").pagecontainer("change", "#roompage", {});
 					alert(nickname);
 			});
 
@@ -132,6 +92,8 @@
 				}
 			});
 			
+
+			<!-- 메세지를 보내면 서버에서 모든 클라이언트에게 메세지를 html형식으로 합쳐서 보낸다-->
 			socket.on('message', function (data){
 				
 				var output = '';
@@ -144,7 +106,7 @@
 				$(output).prependTo('#content');
 				$('#content').listview('refresh');
 			});
-		
+		<!-- 메세지 보내기 버튼 (위에있는 함수가 서버에서 메세지를 받아서 뿌려줌-->
 			$('button').click(function () {
 				socket.emit('message', {
 					nickname: nickname,
@@ -159,6 +121,8 @@
 				$('#message').focus();
 			});
 			
+
+			<!-- 슬라이드 했을때 -->
 			$(document).on('swiperight', '#loginpage', function(e){
 				$('#register').popup("open");
 			});
@@ -175,11 +139,14 @@
 		});		
 	</script>	
 </head>
+
+<!-- 바디에 제이쿼리모바일 -->
 <body>
 	<div data-role='dialog' data-position-to'window' id='loginpage'>
 		
 		<div data-role='header' data-position='fixed'>
 			<h1>Login Page</h1>
+			<a href="#roompage">to room</a>
 			<a data-role='button' data-rel='popup' href="#register" id='registerButton' class="ui-corner-all">Sign up</a>
 			<a id='fblogin' data-role='button' data-icon='logo-fb' class='ui-corner-all ui-btn-icon-notext ui-nodisc-icon ui-btn-inline'></a>
 		</div>
@@ -212,32 +179,37 @@
 			<div data-role="fieldcontain">
 				<label>Password:</label><input type='password' id='password'>
 			</div>
-			<div data-role='fieldcontain'>
-				<label>roomName:</label><input id='roomname'>
-
-			</div>
-
 			<a id='login' data-role='button'>Start</a>
 		</div>
 	</div>
 		
+
+<div data-role = 'page' id = 'howroom'>
+
+
+
+
+
+</div>
+
+
+
 	<div data-role='page' id='roompage'>
 		<div data-role='header' data-position='fixed'>
 			<h1>Rooms</h1>
 		</div>
 		
 		<div data-role='content'>
-<<<<<<< HEAD
-			<ul id='roomlist' data-role='listview' data-inset='true' data-filter="true">
-				<li><a href="#chatpage">To ChatRoom1</a></li>
-				<li><a href="#chatpage">To ChatRoom2</a></li>
-=======
-			<ul id='roomlist' data-role='listview' data-inset='true'>
+			<ul id='roomlist' data-role='listview' data-inset='true' theme = "b">
 				
-				<li><a href="#chatpage"> about Jane</a></li>
-				<li><a href="#chatpage"> about CRA</a></li>
+				<li><a href="#chatpage">how </a> </li>
+				<li><a href="#chatpage">can i</a> </li>
+				<li><a href="#chatpage">download list</a> </li>
+				<li><a href="#chatpage">from server?</a> </li>
 
->>>>>>> origin/UIFix
+
+
+
 			</ul>
 		</div>		
 	</div>
