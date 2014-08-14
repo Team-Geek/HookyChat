@@ -10,13 +10,15 @@ var db = mysql.createConnection({
 	database: 'chatDB'
 });
 
-var loggedIn;
-
 io.sockets.on('connection', function (socket){		
+
+	socket.roomlist = [];
+	socket.user_id = '';
 
 	socket.on('signup', function (data){
 		
 		checkid(data, socket);
+		
 		//socket.emit('signup', 0);
 	
 	});
@@ -28,12 +30,20 @@ io.sockets.on('connection', function (socket){
 		else
 			fblogin(data, socket);
 
-	});
-	
+	});	
 	
 	socket.on('message', function (data){
-		io.sockets.emit('message', data);
+		console.log(data);		
+		io.sockets.in(data.room).emit('message', data);
 	});
+
+	socket.on('enter', function (type, data){
+		if(socket.id)
+		{
+			enterRoom(type, socket);
+		}
+	});
+
 });
 
 function checkid(data, socket)
@@ -81,7 +91,10 @@ function login(data, socket)
 		{
 			db.query('SELECT * FROM UserInfo WHERE userid="' + data.userid + '"', function(error2, userinfo){
 				socket.emit('loginSuccess', userinfo[0]);
-				showRooms(data.userid, socket);
+				setTimeout(function(){initializeRoom(data.userid, socket)}, 1000);
+				//showRooms(data.id, socket);
+				showCraatedRooms(data.userid, socket);
+				socket.user_id = data.userid;
 			});				
 		}
 		else
@@ -107,10 +120,42 @@ function fblogin(data, socket)
 		else
 		{
 			socket.emit('loginSuccess', userinfo[0]);
-		}	
+		}
 
-		showRooms(data.id, socket);
+		socket.user_id = data.id;	
+		
+		console.log('badd');
+		setTimeout(function(){initializeRoom(data.id, socket)}, 1000);
+		//showRooms(data.id, socket);
+		showCraatedRooms(data.id, socket);
+	});
+}
 
+function initializeRoom(userid, socket)
+{
+	db.query('SELECT * FROM UserInfo WHERE userid="' + userid + '"', function(error, userinfo){
+						
+		parsed = JSON.parse(userinfo[0].joined_room);
+
+		parsed.forEach(function(entry, index) {
+			
+			db.query('SELECT * FROM Roomlist WHERE id="' + parsed[index] + '"', function(error, rooms){				
+								
+				if(rooms.length > 0)
+				{
+					//put the clients into the rooms
+					socket.join(parsed[index]);												
+					socket.roomlist[index] = rooms[0];
+				}
+
+				if(index == (parsed.length - 1))
+				{	
+					socket.emit('initRoompage', socket.roomlist);				
+					socket.emit('showRooms', '#roomlist',  socket.roomlist);					
+				}
+
+			});
+		});		
 	});
 }
 
@@ -135,18 +180,29 @@ function createRoom(data, socket)
 function showRooms(userid, socket)
 {
 	db.query('SELECT * FROM UserInfo WHERE userid="' + userid + '"', function(error, userinfo){
-		var parsed = JSON.parse(userinfo[0].joined_room);		
+		
+		var parsed = JSON.parse(userinfo[0].joined_room);
+		var roomlist = [];
+
+		for(var i=0; i < parsed.length; i++)
+		{
+			db.query('SELECT * FROM Roomlist WHERE id="' + parsed[i] + '', function(error, rooms){
+				roomlist[i] = rooms[i]
+			});
+		}		
+		
 		socket.emit('showRooms', '#roomlist',  parsed);
 	});
 }
 
 function showCraatedRooms(userid, socket)
 {
-	/*
+	
 	db.query('SELECT * FROM Roomlist', function(error, roominfo) {
-		socket.emit('showRooms', )
+		console.log(roominfo);
+		socket.emit('showRooms', '#searchlist', roominfo);
 	});
-	*/
+	
 }
 
 function switchRoom(data, socket)
@@ -154,7 +210,7 @@ function switchRoom(data, socket)
 
 }
 
-function enterRoom(data, socket)
+function enterRoom(type, socket)
 {
 
 }
