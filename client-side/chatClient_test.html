@@ -178,14 +178,12 @@
 							nickname: nickname,
 							message: $('#' + room + ' textarea').val(),
 							date: new Date().toUTCString()
-						});						
+						});
+						
+						$('#message').val('');
 					});
-				}
 
-				if(list == '#searchlist')
-				{
-					
-				}							
+				}				
 				
 			});
 
