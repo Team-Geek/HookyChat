@@ -1,7 +1,10 @@
 
+<!-- 모듈을 가져옴-->
+
 var mysql = require('mysql');
 var io = require('socket.io').listen(53297);
 
+<!--커넥션 초기화  -->
 var db = mysql.createConnection({
 	host: '127.0.0.1',
 	port: '3306',
@@ -12,40 +15,21 @@ var db = mysql.createConnection({
 
 var loggedIn;
 
+<!-- connection은 모든 클라이언트에 해당하는 것이기 때문에 모든 클라이언트에게 해주는 펑션임-->
 io.sockets.on('connection', function (socket){
 	
-	socket.on('join',function(data)){
 
-		socket.join(data.roomname);
-		socket.set('room', data.roomname);
-
-		socket.get('room', function(error,room){
-
-			io.sockets.in(room).emit('join',data.userid);
-		});
-
-
-
-	});
-
-
-
-
-
-
-
-
+	<!-- 이벤트를 발생시킨 특정 클라이언트에게만 실행시키는 함수-->
 	socket.on('signup', function (data){
 		
 		checkid(data, socket);
-		//socket.emit('signup', 0);
+		socket.emit('signup', 0);
 	
 	});
 	
 	socket.on('login', function (type, data){	
 		
 		console.log('yo');		
-		console.log(data);
 
 		if(type == 1)
 			login(data, socket);
@@ -54,7 +38,7 @@ io.sockets.on('connection', function (socket){
 
 	});
 	
-	
+	<!--클라이언트에서 message 보내기 버튼을 눌렀을때 실행되는 함 -->
 	socket.on('message', function (data){
 		io.sockets.emit('message', data);
 	});
@@ -87,8 +71,8 @@ function checkid(data, socket)
 				db.query('INSERT INTO UserInfo VALUES ("' 
 				+ data.newId + '", "' + data.newNickname + '")');
 			}
-		
-			socket.emit('signup', check);
+		<!-- signup 이벤트리스너를 실행시키면서 파라미터로 check를 보내줌.-->
+			socket.emit('signup', 1);
 			
 		});
 				
