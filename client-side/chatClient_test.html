@@ -101,6 +101,16 @@
 					password: $('#password').val()
 				});
 			});
+
+			$('#make_room').click(function(){
+				console.log($('#privacy').prop('checked'));
+				socket.emit('create', {
+					room_name: $('#new_title').val(),
+					privacy: $('#privacy').prop('checked'),
+					room_password: $('#new_room_password').val()
+				});
+
+			});
 			
 			socket.on('loginSuccess', function (data){
 					nickname = data.nickname;
@@ -108,7 +118,7 @@
 					console.log(nickname);				
 			});
 
-			socket.on('loginFailed', function (){
+			socket.on('loginFailed', function (){				
 				$('#failedLogin').popup("open");
 			});
 
@@ -141,28 +151,32 @@
 				//alert(data);			
 				$(list + ' li').remove();
 
-				console.log($(list).parents('div[data-role="page"]').is('.ui-page-active'));
+				console.log(list);
 				
 				for(var i = 0; i < data.length; i++)
 				{						
 					var output = '';
-					output += '<li id="room" value="' + i +'"><a>';
-					output += ' 	<h3>' + data[i].name + '</h3></a>';					
-					output += '</li>';
+					output += '<li roomid="' +  data[i].id + '" value="' + i +'"><a href="#' +  data[i].id + '"">';
+					output += ' 	<h3>' + data[i].name + '</h3></a>';
+					
+					if(list == '#roomlist')
+					{
+						output += '		<a href="#off" data-rel="popup" data-icon="power"></a>';
+					}
+
+					output += '</li>';					
 
 					$(output).prependTo(list);						
 					
-					if($(list).parents('div[data-role="page"]').is('.ui-page-active'))
-						$(list).listview('refresh');						
+					if($(list).parents('div[data-role="page"]').is('.ui-page'))
+						$(list).listview('refresh');					
 				}
 
 				if(list == '#roomlist')
 				{
 					console.log('showroom');
-					$('#roomlist li').click(function(event){
-						var number = event.currentTarget.value;
-						$('body').pagecontainer('change', '#' + data[number].id);
-						console.log('#' + data[number].id);
+					$('#roomlist li').click(function(event){			
+							target = event.currentTarget										
 					});
 					$('.ui-btn-send').click(function (event) {
 
@@ -179,36 +193,84 @@
 							message: $('#' + room + ' textarea').val(),
 							date: new Date().toUTCString()
 						});
-						
-						$('#message').val('');
 					});
+					$('.ui-btn-exit').click(function (event){
+						
+						var room_id;						
 
-				}				
+						if($(event.currentTarget).parents('div[data-role="page"]').attr('id') == 'roompage')
+						{
+							console.log('in roompage');
+							room_id = $(target).attr('roomid');
+						}
+						else
+						{
+							room_id = $(event.currentTarget).parents('div[data-role="page"]').attr('id');							
+						}
+
+						console.log('exit: ' + room_id);
+						
+						socket.emit('leave', room_id);
+
+						$('#' + room_id).remove();
+					});				
+
+				}
+				else if(list == '#searchlist')
+				{
+					console.log('searchlist');
+
+					$('#searchlist li').click(function(event){
+
+						var roomid = $(event.currentTarget).attr('roomid');
+
+						console.log(roomid);
+
+						socket.emit('enter', roomid);
+					});
+				}
+
 				
+			});
+
+			socket.on('showMessageBox', function (id) 
+			{
+				$(id).popup('open');
+			});
+
+			socket.on('showPage', function(room_id)
+			{
+				$('body').pagecontainer('change', '#' + room_id);
 			});
 
 			socket.on('initRoompage', function (roomlist) {
 
-				console.log('init roompage');
+				console.log(roomlist);
 
 				for(var i = 0; i < roomlist.length; i++)
 				{
 					var output = '';
 					output += '<div data-role="page" id="' + roomlist[i].id + '" no="' + i + '">';
-					output += '	<div data-role="header" data-position="fixed">'
+					output += '	<div data-role="header" data-position="fixed">';
 					output += '  <a data-role="button" href="#roompage" data-icon="bars" class="ui-corner-all ui-shadow ui-btn-icon-left">&nbsp</a>';
 					output += '  <h3>' + roomlist[i].name + '</h3>';
-					output += '  <a data-role="button" data-icon="comment" class="ui-conner-all ui-shadow ui-btn-right ui-btn-send">send</a>'
-					output += '  <div data-role=navbar>'					
-					output += '   <textarea rows="2" class="ui-no-growth">'
-					output += '   </textarea>'
-					output += '  </div>'
+					output += '  <a data-role="button" data-icon="comment" class="ui-conner-all ui-shadow ui-btn-right ui-btn-send">send</a>';
+					output += '  <div data-role=navbar>';					
+					output += '   <textarea rows="2" class="ui-no-growth">';
+					output += '   </textarea>';
+					output += '  </div>';
 					output += ' </div>';
 					output += ' <div data-role="content">';
 					output += '  <ul data-role="listview" data-inset="true">';
 					output += '  </ul>';
 					output += ' </div>';
-					output += ' <div data-role="footer" data-position="fixed">';			
+					output += ' <div data-role="footer" data-position="fixed">';
+					output += '  <a data-role="button" data-icon="power" data-rel="popup" href="#' + roomlist[i].id +'off" class="ui-conner-all ui-shadow ui-btn-icon-left">off</a>';	
+					output += ' </div>';
+					output += ' <div data-role="popup" id="' + roomlist[i].id + 'off" data-position-to="window" class="ui-content">';
+					output += '  <h3>Do you reall wanna turn off?</h3>';
+					output += '  <a href="#' + roomlist[i].id + '" data-rel="back" data-role="button" class="ui-conner-all ui-shadow">No</a>';
+					output += '  <a href="#roompage" data-role="button" class="ui-conner-all ui-shadow ui-btn-exit">Yes</a>';
 					output += ' </div>';
 					output += '</div>';
 
@@ -236,7 +298,8 @@
 
 				console.log($('#' + data.room).is('.ui-page'));
 
-				if($('#' + data.room).is('.ui-page'))				{
+				if($('#' + data.room).is('.ui-page'))
+				{
 					
 					$('#' + data.room).find('ul').listview('refresh');
 				}
@@ -282,8 +345,8 @@
 		<div data-role='popup' id='failedLogin' data-position-to='window' class='ui-content'>
 			<h3>Login failed</h3>
 		</div>
-		
-		<div data-role='popup' id='register' data-position-to='window' data-dismissible="false" class='ui-content'>
+	
+		<div data-role='popup' id='register' data-position-to='window' data-dismissible="false" class="ui-content">
 			<label>ID:</label><input id='newId'>
 			<label>Password:</label><input type='password' id='newPassword'>
 			<label>Nickname:</label><input id='newNickname'>
@@ -308,7 +371,7 @@
 		
 	<div data-role='page' id='roompage'>
 			<div data-role='content'>
-				<ul id='roomlist' data-role='listview' data-inset='true'>
+				<ul id='roomlist' data-role='listview' data-inset='true' data-split-theme="d">
 			
 				</ul>
 			</div>
@@ -322,6 +385,13 @@
 				</ul>
 			</div>		
 		</div>
+
+		<div data-role="popup" id="off" data-position-to="window" class="ui-content">
+			<h3>Do you reall wanna turn off?</h3>'
+			<a href="#roompage" data-rel="back" data-role="button" class="ui-conner-all ui-shadow">No</a>
+			<a href="#roompage" data-rel="back" data-role="button" class="ui-conner-all ui-shadow ui-btn-exit">Yes</a>
+		</div>
+
 	</div>
 
 	<div data-role='page' id='searchpage'>
@@ -329,7 +399,7 @@
 					<input id='searchroom' type='search'>
 					<a data-role="button" data-icon="search" class="ui-conner-all ui-shadow ui-btn-icon-notext ui-btn-right"></a>			
 					<a href='#room_maker' data-role='button' data-rel='popup' data-icon='plus' class='ui-conner-all ui-shadow ui-btn-left ui-btn-icon-notext'></a>			
-		</div>		
+		</div>
 		
 		<div data-role='content'>
 			<ul id='searchlist' data-role='listview' data-inset='true'>
@@ -347,6 +417,16 @@
 			</div>		
 		</div>
 
+		<div data-role='popup' id='room_maker' data-position-to='window' class='ui-content'>
+			<label>Title:</label><input id='new_title'>
+			<label>Privacy<input type='checkbox' id='privacy'></label>
+			<label>Password:</label><input type='password' id='new_room_password'>		
+			<a href='#searchpage' id='make_room' data-role='button' data-icon='check' data-rel='back' class='ui-corner-all ui-shadow ui-btn-icon-notext ui-btn-inline'>Make Room</a>
+		</div>
+
+		<div data-role='popup' id='closedRoom' data-position-to='window' class='ui-content'>
+			<h3>Room is closed</h3>
+		</div>
 
 	</div>
 
